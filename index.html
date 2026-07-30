@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Tunnel Illusion</title>
+    <title>TunnelUpgraded</title>
     <style>
         html, body {
             margin: 0;
@@ -15,7 +15,6 @@
             justify-content: center;
             align-items: center;
         }
-
         #illusionContainer {
             position: relative;
             width: 95vw;
@@ -23,12 +22,10 @@
             max-width: 1100px;
             max-height: 800px;
             background: #000;
-            /* Border cuts off linear paths perfectly to enhance edge parallax translation */
             border: 4px solid #111;
             box-shadow: 0 0 50px rgba(0,0,0,1);
             overflow: hidden;
         }
-
         canvas {
             display: block;
             width: 100%;
@@ -37,7 +34,6 @@
     </style>
 </head>
 <body>
-
     <div id="illusionContainer">
         <canvas id="shearCanvas"></canvas>
     </div>
@@ -55,62 +51,90 @@
         resize();
 
         let timeFactor = 0;
-        const totalRings = 42; // Number of layered depth frames
+        const totalRings = 42; 
+
+        // Flower geometry types
+        const FLOWER_TYPES = ['star', 'gear', 'wave'];
 
         function runIllusionLoop() {
-            // Intense motion-blur masking to merge frames into smooth depth gradients
-            ctx.fillStyle = 'rgba(3, 3, 7, 0.14)';
+            // Enhanced trails for richer color blending
+            ctx.fillStyle = 'rgba(3, 3, 7, 0.12)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             
-            timeFactor += 0.015;
+            // SPEED UP: Increased step from 0.015 to 0.038 for faster movement
+            timeFactor += 0.038; 
 
-            // Generate depth patterns from background forward to stack depth accurately
             for (let i = totalRings; i > 0; i--) {
-                // Non-linear depth distribution (creates exponential forward zoom speed)
                 const zProgress = (i - (timeFactor % 1)) / totalRings;
-                const scale = Math.pow(1 - zProgress, 3.5) * 12; // Hyperbolic scale transformation
-                
+                const scale = Math.pow(1 - zProgress, 3.5) * 12; 
                 if (scale <= 0.05) continue;
 
                 ctx.save();
                 ctx.translate(centerX, centerY);
 
-                // ANAMORPHIC SHEAR LOOPHOLE:
-                // Skews the drawing canvas matrix across asymmetrical 3D tilt steps.
-                // The brain processes horizontal shear deformation as depth distance rotation.
-                const shearAngleX = Math.sin(timeFactor * 0.4 + (i * 0.05)) * 0.55;
-                const shearAngleY = Math.cos(timeFactor * 0.3 + (i * 0.04)) * 0.25;
+                // Anamorphic matrix distortion
+                const shearAngleX = Math.sin(timeFactor * 0.5 + (i * 0.05)) * 0.55;
+                const shearAngleY = Math.cos(timeFactor * 0.4 + (i * 0.04)) * 0.25;
                 ctx.transform(1, shearAngleY, shearAngleX, 1, 0, 0);
+                ctx.rotate(timeFactor * 0.3 + (i * 0.08));
 
-                // Smooth rotational vortex tumble to anchor the rolling perspective trap
-                ctx.rotate(timeFactor * 0.2 + (i * 0.08));
-
-                // Color shifts dynamically based on proximity to mimic heat/light distortion
-                const luminance = Math.floor((1 - zProgress) * 255);
-                const neonColor = `hsl(${(timeFactor * 40 + i * 8) % 360}, 100%, 55%)`;
-
+                // COLORS: Faster rainbow shifting with multi-hue depth distribution
+                const baseHue = (timeFactor * 75 + i * 15) % 360;
+                const neonColor = `hsl(${baseHue}, 100%, 60%)`;
                 ctx.strokeStyle = neonColor;
-                ctx.lineWidth = Math.max(1, scale * 1.5);
-                
-                // Draw a complex multi-point star ring
-                ctx.beginPath();
-                const pointsCount = 6; // Hexagonal layout gives distinct flat edges for your eye tracking
+                ctx.lineWidth = Math.max(1.2, scale * 1.8);
+
+                // FLOWER VARIETIES: Alternates shape patterns based on layer depth index
+                const currentType = FLOWER_TYPES[i % FLOWER_TYPES.length];
+                const pointsCount = 5 + (i % 4); // Dynamically cycles between 5, 6, 7, and 8 petals
                 const outerRadius = scale * 45;
                 const innerRadius = scale * 18;
 
-                for (let p = 0; p < pointsCount * 2; p++) {
-                    const currentAngle = (p * Math.PI) / pointsCount;
-                    const r = (p % 2 === 0) ? outerRadius : innerRadius;
-                    const px = Math.cos(currentAngle) * r;
-                    const py = Math.sin(currentAngle) * r;
+                ctx.beginPath();
 
-                    if (p === 0) ctx.moveTo(px, py);
-                    else ctx.lineTo(px, py);
+                if (currentType === 'star') {
+                    // Star blossom
+                    for (let p = 0; p < pointsCount * 2; p++) {
+                        const currentAngle = (p * Math.PI) / pointsCount;
+                        const r = (p % 2 === 0) ? outerRadius : innerRadius;
+                        const px = Math.cos(currentAngle) * r;
+                        const py = Math.sin(currentAngle) * r;
+                        if (p === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                } 
+                else if (currentType === 'gear') {
+                    // Blocky mechanical gear flower
+                    for (let p = 0; p < pointsCount * 2; p++) {
+                        const currentAngle = (p * Math.PI) / pointsCount;
+                        const nextAngle = ((p + 1) * Math.PI) / pointsCount;
+                        const r = (Math.floor(p / 2) % 2 === 0) ? outerRadius : innerRadius;
+                        
+                        const px1 = Math.cos(currentAngle) * r;
+                        const py1 = Math.sin(currentAngle) * r;
+                        const px2 = Math.cos(nextAngle) * r;
+                        const py2 = Math.sin(nextAngle) * r;
+
+                        if (p === 0) ctx.moveTo(px1, py1);
+                        ctx.lineTo(px1, py1);
+                        ctx.lineTo(px2, py2);
+                    }
+                } 
+                else if (currentType === 'wave') {
+                    // Smooth sinusoidal curved petals
+                    for (let a = 0; a <= Math.PI * 2; a += 0.05) {
+                        const waveMod = Math.sin(a * pointsCount) * (outerRadius - innerRadius) * 0.5;
+                        const r = ((outerRadius + innerRadius) * 0.5) + waveMod;
+                        const px = Math.cos(a) * r;
+                        const py = Math.sin(a) * r;
+                        if (a === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
                 }
-                
+
                 ctx.closePath();
                 ctx.stroke();
                 ctx.restore();
