@@ -2,77 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>3DSpiralVortex</title>
+    <title>3D Tunnel Illusion</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #010205;
+            background-color: #030307;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            perspective: 1200px;
         }
 
-        /* The Focal Window Frame */
-        #vortexFrame {
+        #illusionContainer {
             position: relative;
-            width: 90vw;
-            height: 85vh;
-            max-width: 1000px;
-            max-height: 750px;
-            border: 6px double #0d1b2a;
-            background: #020408;
-            box-shadow: 
-                0 0 60px rgba(0, 0, 0, 0.95),
-                inset 0 0 80px rgba(0, 255, 230, 0.05);
-            overflow: visible; /* Allows spiral rings to burst out of the frame bounds */
-            box-sizing: border-box;
+            width: 95vw;
+            height: 90vh;
+            max-width: 1100px;
+            max-height: 800px;
+            background: #000;
+            /* Border cuts off linear paths perfectly to enhance edge parallax translation */
+            border: 4px solid #111;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+            overflow: hidden;
         }
 
         canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
+            display: block;
             width: 100%;
             height: 100%;
-            pointer-events: none;
-        }
-
-        .alert-text {
-            position: absolute;
-            top: -40px;
-            width: 100%;
-            text-align: center;
-            color: #ff3344;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            font-weight: bold;
-            letter-spacing: 3px;
-            text-shadow: 0 0 8px rgba(255, 51, 68, 0.4);
-            animation: flash 1.5s infinite;
-        }
-
-        @keyframes flash {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
         }
     </style>
 </head>
 <body>
 
-    <div id="vortexFrame">
-        <div class="alert-text">⚠️ WARNING: MAXIMUM COGNITIVE DEPTH OVERDRIVE ⚠️</div>
-        <canvas id="vortexCanvas"></canvas>
+    <div id="illusionContainer">
+        <canvas id="shearCanvas"></canvas>
     </div>
 
     <script>
-        const canvas = document.getElementById('vortexCanvas');
+        const canvas = document.getElementById('shearCanvas');
         const ctx = canvas.getContext('2d');
-        const container = document.getElementById('vortexFrame');
+        const container = document.getElementById('illusionContainer');
 
         function resize() {
             canvas.width = container.clientWidth;
@@ -81,100 +54,72 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // Engine Variables
-        let globalRotation = 0;
-        const totalNodes = 180; // Massive node trace count for a solid geometry line look
-        const maxDepth = 900;
-        const focalPlaneZ = 180; // The spatial tipping point where lines break through the display glass
+        let timeFactor = 0;
+        const totalRings = 42; // Number of layered depth frames
 
-        function renderVortex() {
-            // Keep the trail fade ultra-dark and precise for neon light clarity
-            ctx.fillStyle = 'rgba(1, 2, 5, 0.12)';
+        function runIllusionLoop() {
+            // Intense motion-blur masking to merge frames into smooth depth gradients
+            ctx.fillStyle = 'rgba(3, 3, 7, 0.14)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
+            
+            timeFactor += 0.015;
 
-            // Slowly increment rotation speed to feed the spiral illusion spin
-            globalRotation += 0.025;
-
-            // Store fully calculated 3D coordinates for projection mapping
-            const points = [];
-
-            for (let i = 0; i < totalNodes; i++) {
-                // Distribute nodes chronologically along a deep spatial pipeline
-                const progress = i / totalNodes;
+            // Generate depth patterns from background forward to stack depth accurately
+            for (let i = totalRings; i > 0; i--) {
+                // Non-linear depth distribution (creates exponential forward zoom speed)
+                const zProgress = (i - (timeFactor % 1)) / totalRings;
+                const scale = Math.pow(1 - zProgress, 3.5) * 12; // Hyperbolic scale transformation
                 
-                // Animate depth z positioning over time to create a forward moving effect
-                let z = maxDepth - ((progress * maxDepth + globalRotation * 80) % maxDepth);
+                if (scale <= 0.05) continue;
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+
+                // ANAMORPHIC SHEAR LOOPHOLE:
+                // Skews the drawing canvas matrix across asymmetrical 3D tilt steps.
+                // The brain processes horizontal shear deformation as depth distance rotation.
+                const shearAngleX = Math.sin(timeFactor * 0.4 + (i * 0.05)) * 0.55;
+                const shearAngleY = Math.cos(timeFactor * 0.3 + (i * 0.04)) * 0.25;
+                ctx.transform(1, shearAngleY, shearAngleX, 1, 0, 0);
+
+                // Smooth rotational vortex tumble to anchor the rolling perspective trap
+                ctx.rotate(timeFactor * 0.2 + (i * 0.08));
+
+                // Color shifts dynamically based on proximity to mimic heat/light distortion
+                const luminance = Math.floor((1 - zProgress) * 255);
+                const neonColor = `hsl(${(timeFactor * 40 + i * 8) % 360}, 100%, 55%)`;
+
+                ctx.strokeStyle = neonColor;
+                ctx.lineWidth = Math.max(1, scale * 1.5);
                 
-                // Exponential math formulas to weave nodes into a hyper-helix thread
-                const helixRadius = 140 * Math.log(maxDepth / (z + 20)); 
-                const spiralAngle = (progress * Math.PI * 14) + (globalRotation * 0.5);
+                // Draw a complex multi-point star ring
+                ctx.beginPath();
+                const pointsCount = 6; // Hexagonal layout gives distinct flat edges for your eye tracking
+                const outerRadius = scale * 45;
+                const innerRadius = scale * 18;
 
-                // Derive 3D raw space points
-                const x = Math.cos(spiralAngle) * helixRadius;
-                const y = Math.sin(spiralAngle) * helixRadius;
+                for (let p = 0; p < pointsCount * 2; p++) {
+                    const currentAngle = (p * Math.PI) / pointsCount;
+                    const r = (p % 2 === 0) ? outerRadius : innerRadius;
+                    const px = Math.cos(currentAngle) * r;
+                    const py = Math.sin(currentAngle) * r;
 
-                // Project 3D coordinate space onto flat 2D viewport surface
-                const scaleFactor = 380 / (z + 100);
-                const projX = x * scaleFactor + centerX;
-                const projY = y * scaleFactor + centerY;
-                const nodeSize = Math.max(1, (1.2 - (z / maxDepth)) * 7);
-
-                // Compute exact stereoscopic channel variance split distances
-                const stereoDisparity = ((z - focalPlaneZ) / maxDepth) * 26;
-
-                points.push({
-                    x: projX,
-                    y: projY,
-                    size: nodeSize,
-                    disparity: stereoDisparity,
-                    z: z
-                });
-            }
-
-            // Draw connecting lines between mapped vertices to construct geometric walls
-            ctx.globalCompositeOperation = 'screen';
-
-            // PHASE 1: THE STEREO RED TUNNEL CHANNEL (Left eye map offset)
-            ctx.strokeStyle = 'rgba(255, 10, 50, 0.75)';
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            for (let i = 0; i < points.length - 1; i++) {
-                // If nodes jump boundaries during recycling loop, skip linking line
-                if (points[i].z > points[i+1].z) continue;
-                
-                if (i === 0) ctx.moveTo(points[i].x - points[i].disparity, points[i].y);
-                else ctx.lineTo(points[i].x - points[i].disparity, points[i].y);
-            }
-            ctx.stroke();
-
-            // PHASE 2: THE STEREO CYAN TUNNEL CHANNEL (Right eye map offset)
-            ctx.strokeStyle = 'rgba(0, 240, 255, 0.75)';
-            ctx.beginPath();
-            for (let i = 0; i < points.length - 1; i++) {
-                if (points[i].z > points[i+1].z) continue;
-
-                if (i === 0) ctx.moveTo(points[i].x + points[i].disparity, points[i].y);
-                else ctx.lineTo(points[i].x + points[i].disparity, points[i].y);
-            }
-            ctx.stroke();
-
-            // Draw glowing node points as they get close to create a splatter look
-            for (let i = 0; i < points.length; i++) {
-                let p = points[i];
-                if (p.z < focalPlaneZ + 100) {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                    ctx.fillRect(p.x - p.disparity - (p.size/2), p.y - (p.size/2), p.size, p.size);
-                    ctx.fillRect(p.x + p.disparity - (p.size/2), p.y - (p.size/2), p.size, p.size);
+                    if (p === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
                 }
+                
+                ctx.closePath();
+                ctx.stroke();
+                ctx.restore();
             }
 
-            requestAnimationFrame(renderVortex);
+            requestAnimationFrame(runIllusionLoop);
         }
 
-        renderVortex();
+        runIllusionLoop();
     </script>
 </body>
 </html>
