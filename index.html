@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Illusion59</title>
+    <title>Tunnel Illusion - Hyper-Accelerating Morph</title>
     <style>
         html, body {
             margin: 0;
@@ -53,6 +53,11 @@
         let timeFactor = 0;
         const totalRings = 45; 
 
+        // Speed Progression Tracking Variables
+        let baseSpeed = 0.045; // Starts at original baseline speed
+        let currentCycleCount = 0;
+        let lastCycleIndex = 0;
+
         function runIllusionLoop() {
             ctx.fillStyle = 'rgba(3, 3, 7, 0.12)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -60,11 +65,21 @@
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             
-            // Fast forward momentum
-            timeFactor += 0.045; 
+            // Dynamic acceleration tracking
+            timeFactor += baseSpeed; 
 
-            // Expanded to 5 distinct geometric states
-            const morphCycle = (timeFactor * 0.12) % 5; 
+            // Expanded to 6 geometric phases (0 to 5)
+            const morphCycle = (timeFactor * 0.10) % 6; 
+            const currentCycleIndex = Math.floor(morphCycle);
+
+            // DETECT FULL LOOP COMPLETION: When it resets from 5 back to 0
+            if (currentCycleIndex === 0 && lastCycleIndex === 5) {
+                currentCycleCount++;
+                // Increase base running speed by 25% cumulative every cycle
+                baseSpeed += 0.012; 
+                console.log("Speed Level Up! Current Multiplier Step: " + baseSpeed);
+            }
+            lastCycleIndex = currentCycleIndex;
 
             for (let i = totalRings; i > 0; i--) {
                 const zProgress = (i - (timeFactor % 1)) / totalRings;
@@ -74,18 +89,19 @@
                 ctx.save();
                 ctx.translate(centerX, centerY);
 
-                // Matrix deformation
+                // Matrix deformation - skews dynamically harder as velocity speeds up
+                const speedModifier = 1 + (baseSpeed * 4);
                 const shearAngleX = Math.sin(timeFactor * 0.5 + (i * 0.05)) * 0.55;
                 const shearAngleY = Math.cos(timeFactor * 0.4 + (i * 0.04)) * 0.25;
                 ctx.transform(1, shearAngleY, shearAngleX, 1, 0, 0);
-                ctx.rotate(timeFactor * 0.35 + (i * 0.07));
+                ctx.rotate(timeFactor * (0.30 * speedModifier) + (i * 0.07));
 
                 // Chromatic depth gradient
                 const baseHue = (timeFactor * 80 + i * 14) % 360;
                 ctx.strokeStyle = `hsl(${baseHue}, 100%, 60%)`;
                 ctx.lineWidth = Math.max(1.2, scale * 1.8);
 
-                // Dimensions
+                // Base dimensions
                 const pointsCount = 6 + (i % 2); 
                 const outerRadius = scale * 45;
                 const innerRadius = scale * 18;
@@ -95,25 +111,30 @@
                 ctx.beginPath();
 
                 for (let a = 0; a <= Math.PI * 2; a += 0.05) {
-                    // 1. Wave Profile
+                    // 1. Wave Flower
                     const rWave = midRadius + Math.sin(a * pointsCount) * amplitude;
 
-                    // 2. Star Profile
+                    // 2. Star Flower
                     const starWave = Math.abs(((a * pointsCount / Math.PI) % 2) - 1) * 2 - 1;
                     const rStar = midRadius + starWave * amplitude;
 
-                    // 3. Gear Profile
+                    // 3. Gear Flower
                     const gearWave = Math.tanh(Math.sin(a * pointsCount) * 5);
                     const rGear = midRadius + gearWave * amplitude;
 
-                    // 4. Spiral Profile (Vortex Rosette)
+                    // 4. Spiral Vortex Rosette
                     const rSpiral = midRadius + Math.sin(a * 4 + i * 0.25) * amplitude;
 
-                    // 5. Bugatti Profile (Aerodynamic Hypercar Silhouette & Horseshoe Grille curve)
+                    // 5. Bugatti Hypercar Aero-Silhouette Curve
                     const bugattiCurve = Math.cos(2 * a) * 0.5 + Math.sin(a) * 0.25 + Math.cos(6 * a) * 0.15;
                     const rBugatti = midRadius * (1 + bugattiCurve * 0.5);
 
-                    // 5-Way Smooth Blending Interpolation
+                    // 6. NEW: Deconstructed Abstract Matrix (Glitch Fractal phase)
+                    // Uses chaotic noise interaction based on ring depth layered indexes
+                    const abstractNoise = Math.sin(a * 12) * Math.cos(a * 3) * Math.sin(i * 0.5);
+                    const rAbstract = midRadius * (0.8 + abstractNoise * 0.7) + (Math.sin(a * 2) * amplitude * 1.5);
+
+                    // 6-Way Fluid Interleaving Matrix Blending
                     let finalRadius = rWave;
                     if (morphCycle < 1) {
                         const t = morphCycle;
@@ -127,9 +148,12 @@
                     } else if (morphCycle < 4) {
                         const t = morphCycle - 3;
                         finalRadius = rSpiral * (1 - t) + rBugatti * t;
-                    } else {
+                    } else if (morphCycle < 5) {
                         const t = morphCycle - 4;
-                        finalRadius = rBugatti * (1 - t) + rWave * t;
+                        finalRadius = rBugatti * (1 - t) + rAbstract * t;
+                    } else {
+                        const t = morphCycle - 5;
+                        finalRadius = rAbstract * (1 - t) + rWave * t;
                     }
 
                     const px = Math.cos(a) * finalRadius;
