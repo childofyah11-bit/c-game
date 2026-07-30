@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FlowerIllusion</title>
+    <title>Metamorphic 3D Flower Illusion</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #020205;
+            background-color: #010103;
             overflow: hidden;
             display: flex;
             justify-content: center;
@@ -22,8 +22,8 @@
             max-width: 1100px;
             max-height: 800px;
             background: #000;
-            border: 2px solid #0a1128;
-            box-shadow: 0 0 60px rgba(0,0,0,1);
+            border: 2px solid #060b18;
+            box-shadow: 0 0 70px rgba(0,0,0,1);
             overflow: hidden;
         }
         canvas {
@@ -36,11 +36,11 @@
 <body>
 
     <div id="canvasContainer">
-        <canvas id="flowerCanvas"></canvas>
+        <canvas id="morphCanvas"></canvas>
     </div>
 
     <script>
-        const canvas = document.getElementById('flowerCanvas');
+        const canvas = document.getElementById('morphCanvas');
         const ctx = canvas.getContext('2d');
         const container = document.getElementById('canvasContainer');
 
@@ -52,17 +52,42 @@
         resize();
 
         let timeFactor = 0;
-        const totalLayers = 55; // High layer density overloads the eye tracking field
+        const totalLayers = 60; // Dense layering completely occupies the tracking field
 
-        function drawPetalLoop(ctx, radius, petalCount, rotation) {
+        // Dynamic Petal Engine capable of morphing between organic flower variations
+        function drawMorphingPetals(ctx, radius, basePetals, rotation, morphState) {
             ctx.beginPath();
-            for (let i = 0; i < petalCount * 2; i++) {
-                const angle = (i * Math.PI) / petalCount + rotation;
+            
+            // Increase node counts dynamically to handle smooth curves for high-density variants
+            const resolution = basePetals * 8; 
+            
+            for (let i = 0; i <= resolution; i++) {
+                const angle = (i * Math.PI * 2) / resolution + rotation;
                 
-                // Modulating the radius alternately creates a fluid, wavy rosette footprint
-                const r = (i % 2 === 0) ? radius : radius * 0.45;
-                const x = Math.cos(angle) * r;
-                const y = Math.sin(angle) * r;
+                // Shape Math Formulas:
+                // Rose Pattern: Sharp, alternating deep layers
+                const roseMod = Math.abs(Math.sin(angle * (basePetals / 2)));
+                
+                // Tulip Pattern: Broad, smooth chalice lobes
+                const tulipMod = 0.7 + Math.sin(angle * basePetals) * 0.3;
+                
+                // Lotus Pattern: Highly frequent star points
+                const lotusMod = 0.5 + Math.abs(Math.cos(angle * basePetals * 1.5)) * 0.5;
+
+                // Seamlessly blend (interpolate) between types based on morphState parameters
+                let blendedMod = 1;
+                if (morphState < 1) {
+                    // Blending from Rose to Tulip
+                    blendedMod = roseMod * (1 - morphState) + tulipMod * morphState;
+                } else {
+                    // Blending from Tulip to Lotus
+                    const t = morphState - 1;
+                    blendedMod = tulipMod * (1 - t) + lotusMod * t;
+                }
+
+                const finalRadius = radius * blendedMod;
+                const x = Math.cos(angle) * finalRadius;
+                const y = Math.sin(angle) * finalRadius;
 
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
@@ -72,48 +97,58 @@
         }
 
         function runNeuralEngine() {
-            // High persistence decay values leave long trailing ghost lines to trap focus
-            ctx.fillStyle = 'rgba(2, 2, 5, 0.09)';
+            // High decay rate leaves organic glowing visual paths trapped in your focus
+            ctx.fillStyle = 'rgba(1, 1, 3, 0.08)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             
-            timeFactor += 0.009; // A slow, hypnotic pace maximizes the staring effect
+            timeFactor += 0.007; // Slow, stable pace traps attention
 
-            // Generate concentric flower configurations from foreground to background
+            // Compute current Morph Phase (Cycles endlessly between Rose -> Tulip -> Lotus -> Rose)
+            // Value ranges from 0 to 2, mapping out active states
+            const morphCycle = (timeFactor * 0.4) % 3; 
+            let activeMorphState = 0;
+            let activeBasePetals = 5;
+
+            if (morphCycle < 1) {
+                activeMorphState = morphCycle; // Transition: Rose (0) to Tulip (1)
+                activeBasePetals = 5; // 5-pointed configuration
+            } else if (morphCycle < 2) {
+                activeMorphState = morphCycle - 1; // Transition: Tulip (0) to Lotus (1)
+                activeBasePetals = 6; // Opens up wider into 6 lobes
+            } else {
+                activeMorphState = 1 - (morphCycle - 2); // Transition back from Lotus to Rose
+                activeBasePetals = 8; // High density structure
+            }
+
             for (let i = totalLayers; i > 0; i--) {
-                // Exponential spacing structure mimics deep optical lenses
-                const progress = (i - (timeFactor * 18 % 1)) / totalLayers;
-                const scale = Math.pow(1 - progress, 4.0) * 16;
+                const progress = (i - (timeFactor * 22 % 1)) / totalLayers;
+                const scale = Math.pow(1 - progress, 4.5) * 18; // Hyperbolic scale warp
 
-                if (scale <= 0.02) continue;
+                if (scale <= 0.01) continue;
 
                 ctx.save();
                 ctx.translate(centerX, centerY);
 
-                // LAYER-SPECIFIC ALTERNATING TWISTS:
-                // Odd and even layers rotate in opposite directions.
-                // This counter-rotation destabilizes peripheral vision, making the center pop.
+                // Alternating twist layers force absolute parallax disorientation
                 const directionToggle = (i % 2 === 0) ? 1 : -1;
-                const rotationShift = (timeFactor * 0.45) * directionToggle + (i * 0.04);
+                const rotationShift = (timeFactor * 0.35) * directionToggle + (i * 0.05);
                 
-                // Introduce an anamorphic pulsing tilt to create a simulated 3D sway
-                const swayX = Math.sin(timeFactor * 0.3) * 0.12;
-                const swayY = Math.cos(timeFactor * 0.2) * 0.12;
+                // Anamorphic orbital lens tilt
+                const swayX = Math.sin(timeFactor * 0.25) * 0.1;
+                const swayY = Math.cos(timeFactor * 0.15) * 0.1;
                 ctx.transform(1, swayY, swayX, 1, 0, 0);
 
-                // Deep space gradient color mapping
-                const hue = (timeFactor * 25 + i * 5) % 360;
-                ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
-                
-                // Linewidth increases exponentially as it expands to emulate nearing proximity
-                ctx.lineWidth = Math.max(0.8, scale * 1.8);
+                // Bioluminescent color spectrum shift
+                const hue = (timeFactor * 30 + i * 4) % 360;
+                ctx.strokeStyle = `hsl(${hue}, 100%, 55%)`;
+                ctx.lineWidth = Math.max(0.6, scale * 1.5);
 
-                // Render the individual flower layer node
-                const baseRadius = scale * 50;
-                const petalDensity = 8; // Geometric symmetry anchors focus
-                drawPetalLoop(ctx, baseRadius, petalDensity, rotationShift);
+                const currentBaseRadius = scale * 45;
+                
+                drawMorphingPetals(ctx, currentBaseRadius, activeBasePetals, rotationShift, activeMorphState);
 
                 ctx.restore();
             }
@@ -125,4 +160,3 @@
     </script>
 </body>
 </html>
-
