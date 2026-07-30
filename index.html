@@ -2,283 +2,157 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dropper</title>
+    <title>Cyber Snake Arcade</title>
     <style>
         body {
-            background-color: #03050a;
+            background-color: #050811;
             color: #00ffcc;
             font-family: 'Courier New', Courier, monospace;
             text-align: center;
             margin: 0;
-            overflow: hidden;
-            padding: 10px;
+            padding: 20px;
         }
         h1 {
             margin: 5px 0;
             text-shadow: 0 0 10px #00ffcc;
-            font-size: 24px;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
         }
-        #gameContainer {
-            position: relative;
-            display: inline-block;
-            margin-top: 10px;
-            box-shadow: 0 0 35px rgba(0, 255, 204, 0.25);
-            border-radius: 8px;
-            overflow: hidden;
+        #scoreDisplay {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
         }
         canvas {
-            background: #050914;
+            background-color: #0b1121;
             border: 3px solid #00ffcc;
-            display: block;
+            box-shadow: 0 0 25px rgba(0, 255, 204, 0.3);
+            display: inline-block;
         }
-        .ui-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(3, 5, 10, 0.95);
-            border: 2px solid #ff3344;
-            padding: 25px 40px;
-            border-radius: 6px;
-            display: none;
-            text-align: center;
-            box-shadow: 0 0 25px #ff3344;
-        }
-        .btn {
-            background: transparent;
-            border: 2px solid #00ffcc;
-            color: #00ffcc;
-            padding: 10px 22px;
-            font-family: inherit;
-            font-size: 16px;
-            cursor: pointer;
+        .controls {
             margin-top: 15px;
-            font-weight: bold;
-            text-transform: uppercase;
-            transition: all 0.2s;
-        }
-        .btn:hover {
-            background: #00ffcc;
-            color: #03050a;
-            box-shadow: 0 0 15px #00ffcc;
-        }
-        .stats-layout {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
+            color: #88aaff;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
-    <h1>🌀 CYBER DROPPER: OVERDRIVE 🌀</h1>
-    <div class="stats-layout">
-        <div>DEPTH: <span id="scoreVal" style="color: #ffffff;">0</span>m</div>
-        <div>ENERGY CELLS: <span id="cellsVal" style="color: #33ff77;">0</span></div>
-    </div>
-
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="400" height="600"></canvas>
-        <div id="gameOverScreen" class="ui-overlay">
-            <h2 style="color: #ff3344; margin: 0 0 10px 0; letter-spacing: 3px;">PROBE VAPORIZED</h2>
-            <p>Final Depth: <span id="finalScore">0</span>m</p>
-            <p>Cells Salvaged: <span id="finalCells" style="color: #33ff77;">0</span></p>
-            <button class="btn" onclick="resetGame()">Relaunch Probe</button>
-        </div>
-    </div>
+    <h1>🐍 CYBER SNAKE 🐍</h1>
+    <div id="scoreDisplay">SCORE: <span id="scoreVal" style="color: #fff;">0</span></div>
+    
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    
+    <div class="controls">Use ARROW KEYS or W, A, S, D to pilot the energy snake</div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreVal = document.getElementById('scoreVal');
-        const cellsVal = document.getElementById('cellsVal');
-        const gameOverScreen = document.getElementById('gameOverScreen');
-        const finalScore = document.getElementById('finalScore');
-        const finalCells = document.getElementById('finalCells');
 
-        // Core Configuration
+        // Grid Configuration
+        const gridSize = 20; 
+        const tileCount = canvas.width / gridSize;
+
+        // Game State Variables
+        let snake = [{ x: 10, y: 10 }];
+        let food = { x: 15, y: 7 };
+        let dx = 1; // Starting horizontal direction vector
+        let dy = 0; // Starting vertical direction vector
         let score = 0;
-        let cellsCollected = 0;
-        let gameActive = true;
-        let gameSpeed = 4.5;
+        let gameInterval;
+        const gameSpeed = 100; // Refreshes every 100ms for stable retro pace
 
-        // Upgraded Physics Player Object
-        const player = {
-            x: 200,
-            y: 140,
-            radius: 10,
-            vx: 0,            // Horizontal velocity
-            acceleration: 0.9, // Power of keypress steering
-            friction: 0.86,    // Slidiness feeling (lower = tighter, higher = floatier)
-            maxSpeed: 8,
-            trail: []         // Stores previous positions for the cool motion tail
-        };
+        // Input Keyboard Listeners 
+        document.addEventListener('keydown', handleKeyPress);
 
-        let gates = [];
-        let gems = [];
-        let particles = [];
-        const gateHeight = 16;
-        const gateGapWidth = 95;
-        const spawnDistance = 200;
-
-        const keys = {};
-        document.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
-        document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
-
-        function createObstacleLayer(yPosition) {
-            const gapX = Math.random() * (canvas.width - gateGapWidth - 40) + 20;
-            gates.push({ y: yPosition, gapX: gapX });
-
-            // 60% chance to spawn a shiny score power cell inside or near the safety gap
-            if (Math.random() < 0.6) {
-                gems.push({
-                    x: gapX + (gateGapWidth / 2) + (Math.random() * 40 - 20),
-                    y: yPosition - 40,
-                    radius: 6,
-                    pulse: 0
-                });
-            }
+        function handleKeyPress(e) {
+            const key = e.key.toLowerCase();
+            
+            // Prevent self-collision reversals (e.g., can't move left while going right)
+            if ((key === 'arrowleft' || key === 'a') && dx === 0) { dx = -1; dy = 0; }
+            if ((key === 'arrowright' || key === 'd') && dx === 0) { dx = 1; dy = 0; }
+            if ((key === 'arrowup' || key === 'w') && dy === 0) { dx = 0; dy = -1; }
+            if ((key === 'arrowdown' || key === 's') && dy === 0) { dx = 0; dy = 1; }
         }
 
-        function initEnvironment() {
-            gates = [];
-            gems = [];
-            particles = [];
-            createObstacleLayer(canvas.height);
-            createObstacleLayer(canvas.height + spawnDistance);
-            createObstacleLayer(canvas.height + spawnDistance * 2);
-        }
+        function updateGame() {
+            // Calculate next head position
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-        function triggerExplosion() {
-            for (let i = 0; i < 35; i++) {
-                particles.push({
-                    x: player.x,
-                    y: player.y,
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 10,
-                    radius: Math.random() * 3 + 1,
-                    alpha: 1,
-                    color: Math.random() < 0.5 ? '#00ffcc' : '#ff3344'
-                });
-            }
-        }
-
-        function updatePhysics() {
-            // Run explosion particles even if player is dead
-            particles.forEach((p, idx) => {
-                p.x += p.vx;
-                p.y += p.vy;
-                p.alpha -= 0.02;
-                if (p.alpha <= 0) particles.splice(idx, 1);
-            });
-
-            if (!gameActive) return;
-
-            // Smooth momentum inputs
-            if (keys['arrowleft'] || keys['a']) {
-                player.vx -= player.acceleration;
-            } else if (keys['arrowright'] || keys['d']) {
-                player.vx += player.acceleration;
+            // Wall Collision Checks
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                return resetGame();
             }
 
-            // Apply friction and speed caps
-            player.vx *= player.friction;
-            if (player.vx > player.maxSpeed) player.vx = player.maxSpeed;
-            if (player.vx < -player.maxSpeed) player.vx = -player.maxSpeed;
-
-            player.x += player.vx;
-
-            // Bounce off boundaries with slight velocity penalty
-            if (player.x - player.radius < 0) {
-                player.x = player.radius;
-                player.vx *= -0.4;
-            }
-            if (player.x + player.radius > canvas.width) {
-                player.x = canvas.width - player.radius;
-                player.vx *= -0.4;
-            }
-
-            // Capture trail coordinates
-            player.trail.push({ x: player.x, y: player.y });
-            if (player.trail.length > 12) player.trail.shift();
-
-            // Move Gems & Check Pickups
-            gems.forEach((gem, idx) => {
-                gem.y -= gameSpeed;
-                gem.pulse += 0.1;
-
-                // Circular distance check
-                const dist = Math.hypot(player.x - gem.x, player.y - gem.y);
-                if (dist < player.radius + gem.radius) {
-                    gems.splice(idx, 1);
-                    cellsCollected++;
-                    score += 25; // Bonus score boost
-                    cellsVal.textContent = cellsCollected;
-                    scoreVal.textContent = score;
+            // Self Tail Collision Checks
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x === head.x && snake[i].y === head.y) {
+                    return resetGame();
                 }
-            });
+            }
 
-            // Move Gates & Handle Collisions
-            gates.forEach((gate) => {
-                gate.y -= gameSpeed;
+            // Move the snake forward by placing the new head position at the front
+            snake.unshift(head);
 
-                if (player.y + player.radius > gate.y && player.y - player.radius < gate.y + gateHeight) {
-                    if (player.x - player.radius < gate.gapX || player.x + player.radius > gate.gapX + gateGapWidth) {
-                        endGame();
-                    }
-                }
-            });
-
-            // Recycling layers
-            if (gates.length > 0 && gates[0].y + gateHeight < 0) {
-                gates.shift();
+            // Check if snake overlaps the glowing energy food position
+            if (head.x === food.x && head.y === food.y) {
                 score += 10;
                 scoreVal.textContent = score;
-                
-                if (score % 50 === 0) gameSpeed += 0.4;
-
-                const lastGateY = gates[gates.length - 1].y;
-                createObstacleLayer(lastGateY + spawnDistance);
+                spawnFood();
+            } else {
+                // Remove the last tail element to simulate movement if no food was eaten
+                snake.pop();
             }
 
-            // Clean up old missed gems
-            if (gems.length > 0 && gems[0].y < -20) gems.shift();
+            renderGraphics();
+        }
+
+        function spawnFood() {
+            food.x = Math.floor(Math.random() * tileCount);
+            food.y = Math.floor(Math.random() * tileCount);
+
+            // Ensure food does not spawn inside the current snake body layout
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x === food.x && snake[i].y === food.y) {
+                    spawnFood();
+                    break;
+                }
+            }
         }
 
         function renderGraphics() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Clear current canvas viewport
+            ctx.fillStyle = '#0b1121';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Tech Cyber Grid background lines
-            ctx.strokeStyle = 'rgba(0, 255, 204, 0.03)';
-            ctx.lineWidth = 1.5;
-            const lineOffset = (performance.now() * (gameSpeed / 12)) % 50;
-            for (let y = -lineOffset; y < canvas.height; y += 50) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
+            // Render Snake Segment Blocks
+            for (let i = 0; i < snake.length; i++) {
+                // Head is brighter cyan, body segments are standard neon green
+                ctx.fillStyle = (i === 0) ? '#00ffcc' : '#33ff77';
+                ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize - 2, gridSize - 2);
             }
 
-            // Render Particle Fragments
-            particles.forEach(p => {
-                ctx.save();
-                ctx.globalAlpha = p.alpha;
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            });
+            // Render Energy Food Orb
+            ctx.fillStyle = '#ff3344';
+            ctx.shadowColor = '#ff3344';
+            ctx.shadowBlur = 10; // Gives the food an arcade glow look
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+            ctx.shadowBlur = 0; // Turn off glow context for performance
+        }
 
-            if (gameActive) {
-                // Render Motion Plasma Trail
-                player.trail.forEach((pos, idx) => {
-                    const alpha = idx / player.trail.length;
-                    ctx.save();
-                    ctx.globalAlpha = alpha * 0.35;
-                    ctx.fillStyle = '#00ffcc';
-                    ctx.beginPath();
+        function resetGame() {
+            alert(`GAME OVER\nFinal Score: ${score}`);
+            snake = [{ x: 10, y: 10 }];
+            dx = 1;
+            dy = 0;
+            score = 0;
+            scoreVal.textContent = score;
+            spawnFood();
+        }
+
+        // Start Core Engine Loop Execution
+        spawnFood();
+        gameInterval = setInterval(updateGame, gameSpeed);
+    </script>
+</body>
+</html>
