@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Web Battleship Game</title>
+    <style>
+        body { background-color: #111; color: white; font-family: sans-serif; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(5, 50px); gap: 5px; justify-content: center; margin-top: 20px; }
+        .cell { width: 50px; height: 50px; background-color: #0044ff; border: 1px solid #fff; cursor: pointer; font-size: 24px; line-height: 50px; }
+        .hit { background-color: #ff0000; }
+        .miss { background-color: #ffcc00; }
+    </style>
+</head>
+<body>
+    <h1>🚢 Web Battleship 🚢</h1>
+    <p id="status">Click a square to fire a torpedo! Torpedoes left: 10</p>
+    <div class="grid" id="board"></div>
+
+    <script>
+        const boardSize = 5;
+        let attempts = 0;
+        const maxAttempts = 10;
+        const shipRow = Math.floor(Math.random() * boardSize);
+        const shipCol = Math.floor(Math.random() * boardSize);
+        const boardElement = document.getElementById('board');
+        const statusElement = document.getElementById('status');
+
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.addEventListener('click', () => {
+                    if (attempts >= maxAttempts || cell.textContent !== '') return;
+                    attempts++;
+                    if (r === shipRow && c === shipCol) {
+                        cell.classList.add('hit');
+                        cell.textContent = '💥';
+                        statusElement.innerHTML = '🎯 <strong>DIRECT HIT! You won!</strong>';
+                    } else {
+                        cell.classList.add('miss');
+                        cell.textContent = '💦';
+                        if (attempts >= maxAttempts) {
+                            statusElement.innerHTML = `❌ Game Over! Ship was at Row ${shipRow}, Col ${shipCol}`;
+                        } else {
+                            statusElement.textContent = `Torpedoes left: ${maxAttempts - attempts}`;
+                        }
+                    }
+                });
+                boardElement.appendChild(cell);
+            }
+        }
+    </script>
+</body>
+</html>
