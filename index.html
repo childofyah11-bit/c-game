@@ -2,52 +2,161 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Web Battleship Game</title>
+    <title>Advanced Tactical Battleship</title>
     <style>
-        body { background-color: #111; color: white; font-family: sans-serif; text-align: center; }
-        .grid { display: grid; grid-template-columns: repeat(5, 50px); gap: 5px; justify-content: center; margin-top: 20px; }
-        .cell { width: 50px; height: 50px; background-color: #0044ff; border: 1px solid #fff; cursor: pointer; font-size: 24px; line-height: 50px; }
-        .hit { background-color: #ff0000; }
-        .miss { background-color: #ffcc00; }
+        body { 
+            background-color: #0b0f19; 
+            color: #00ffcc; 
+            font-family: 'Courier New', Courier, monospace; 
+            text-align: center; 
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px #00ffcc;
+            margin-bottom: 5px;
+        }
+        .hud {
+            background: rgba(0, 255, 204, 0.1);
+            border: 1px solid #00ffcc;
+            border-radius: 5px;
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 15px auto;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+        }
+        .status-text {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        /* Expanded 8x8 Grid Layout */
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(8, 55px); 
+            gap: 6px; 
+            justify-content: center; 
+            margin: 20px auto; 
+            background: #070a12;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #1a263f;
+            width: max-content;
+        }
+        .cell { 
+            width: 55px; 
+            height: 55px; 
+            background-color: #131c2e; 
+            border: 1px solid #1f2e4d; 
+            cursor: pointer; 
+            font-size: 26px; 
+            line-height: 55px; 
+            transition: all 0.2s ease;
+            box-shadow: inset 0 0 5px rgba(0, 255, 204, 0.1);
+        }
+        .cell:hover {
+            background-color: #1c2b47;
+            border-color: #00ffcc;
+            box-shadow: 0 0 8px rgba(0, 255, 204, 0.5);
+        }
+        /* Special Effects */
+        .hit { 
+            background-color: #3d0c11 !important; 
+            border-color: #ff3344 !important;
+            animation: flash 0.3s ease-out;
+        }
+        .miss { 
+            background-color: #1a2a3a !important; 
+            border-color: #00aaff !important;
+        }
+        @keyframes flash {
+            0% { background-color: #fff; }
+            100% { background-color: #3d0c11; }
+        }
     </style>
 </head>
 <body>
-    <h1>🚢 Web Battleship 🚢</h1>
-    <p id="status">Click a square to fire a torpedo! Torpedoes left: 10</p>
+    <h1>🛰️ Tactical Radar Display 🛰️</h1>
+    <div class="hud">
+        <div id="status" class="status-text">SYSTEM READY: Scan the ocean grid. Torpedoes left: 20</div>
+    </div>
+    
     <div class="grid" id="board"></div>
 
     <script>
-        const boardSize = 5;
+        const boardSize = 8;
         let attempts = 0;
-        const maxAttempts = 10;
-        const shipRow = Math.floor(Math.random() * boardSize);
-        const shipCol = Math.floor(Math.random() * boardSize);
+        const maxAttempts = 20;
+        let hitsRequired = 3;
+        let successfulHits = 0;
+
+        // Generate a random 3-wide horizontal or vertical ship
+        const shipCoords = [];
+        const isHorizontal = Math.random() < 0.5;
+
+        if (isHorizontal) {
+            const row = Math.floor(Math.random() * boardSize);
+            const startCol = Math.floor(Math.random() * (boardSize - 2)); // space for 3 blocks
+            for (let i = 0; i < 3; i++) shipCoords.push({ r: row, c: startCol + i });
+        } else {
+            const startRow = Math.floor(Math.random() * (boardSize - 2)); // space for 3 blocks
+            const col = Math.floor(Math.random() * boardSize);
+            for (let i = 0; i < 3; i++) shipCoords.push({ r: startRow + i, c: col });
+        }
+
         const boardElement = document.getElementById('board');
         const statusElement = document.getElementById('status');
 
+        // Render the new 8x8 layout
         for (let r = 0; r < boardSize; r++) {
             for (let c = 0; c < boardSize; c++) {
                 const cell = document.createElement('div');
                 cell.classList.add('cell');
+                
                 cell.addEventListener('click', () => {
                     if (attempts >= maxAttempts || cell.textContent !== '') return;
+                    
                     attempts++;
-                    if (r === shipRow && c === shipCol) {
+                    // Check if targeted coordinate matches ship coordinate layout
+                    const isHit = shipCoords.some(coord => coord.r === r && coord.c === c);
+
+                    if (isHit) {
                         cell.classList.add('hit');
                         cell.textContent = '💥';
-                        statusElement.innerHTML = '🎯 <strong>DIRECT HIT! You won!</strong>';
+                        successfulHits++;
+                        
+                        if (successfulHits === hitsRequired) {
+                            statusElement.innerHTML = '<span style="color: #33ff77;">💥 TARGET SINKING! VICTORY CONFIRMED! 💥</span>';
+                            attempts = maxAttempts; // End game interaction
+                        } else {
+                            statusElement.innerHTML = `<span style="color: #ff3344;">🎯 CRITICAL HIT! Ship sections remaining: ${hitsRequired - successfulHits}</span>`;
+                        }
                     } else {
                         cell.classList.add('miss');
                         cell.textContent = '💦';
-                        if (attempts >= maxAttempts) {
-                            statusElement.innerHTML = `❌ Game Over! Ship was at Row ${shipRow}, Col ${shipCol}`;
+                        if (attempts >= maxAttempts && successfulHits < hitsRequired) {
+                            statusElement.innerHTML = '<span style="color: #ff3344;">❌ MISSION FAILED: Out of payload. Scanning ship positions...</span>';
+                            revealShips();
                         } else {
-                            statusElement.textContent = `Torpedoes left: ${maxAttempts - attempts}`;
+                            statusElement.textContent = `SPLASH... Target missed. Torpedoes left: ${maxAttempts - attempts}`;
                         }
                     }
                 });
                 boardElement.appendChild(cell);
             }
+        }
+
+        function revealShips() {
+            const cells = boardElement.children;
+            shipCoords.forEach(coord => {
+                const index = coord.r * boardSize + coord.c;
+                if (cells[index].textContent !== '💥') {
+                    cells[index].style.backgroundColor = '#114422';
+                    cells[index].style.borderColor = '#33ff77';
+                    cells[index].textContent = '🚢';
+                }
+            });
         }
     </script>
 </body>
