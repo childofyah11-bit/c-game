@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TunnelUpgraded</title>
+    <title>Tunnel Illusion - Artistic Morph</title>
     <style>
         html, body {
             margin: 0;
@@ -51,21 +51,21 @@
         resize();
 
         let timeFactor = 0;
-        const totalRings = 42; 
-
-        // Flower geometry types
-        const FLOWER_TYPES = ['star', 'gear', 'wave'];
+        const totalRings = 45; // Increased ring count for a denser tunnel
 
         function runIllusionLoop() {
-            // Enhanced trails for richer color blending
+            // Smooth, rich motion trails
             ctx.fillStyle = 'rgba(3, 3, 7, 0.12)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             
-            // SPEED UP: Increased step from 0.015 to 0.038 for faster movement
-            timeFactor += 0.038; 
+            // SPEED UP: Increased clock step for faster forward momentum
+            timeFactor += 0.042; 
+
+            // Track global shape morph cycle over time
+            const morphCycle = (timeFactor * 0.15) % 3; 
 
             for (let i = totalRings; i > 0; i--) {
                 const zProgress = (i - (timeFactor % 1)) / totalRings;
@@ -75,64 +75,60 @@
                 ctx.save();
                 ctx.translate(centerX, centerY);
 
-                // Anamorphic matrix distortion
+                // Anamorphic matrix tilt & twist distortion
                 const shearAngleX = Math.sin(timeFactor * 0.5 + (i * 0.05)) * 0.55;
                 const shearAngleY = Math.cos(timeFactor * 0.4 + (i * 0.04)) * 0.25;
                 ctx.transform(1, shearAngleY, shearAngleX, 1, 0, 0);
-                ctx.rotate(timeFactor * 0.3 + (i * 0.08));
+                ctx.rotate(timeFactor * 0.35 + (i * 0.07));
 
-                // COLORS: Faster rainbow shifting with multi-hue depth distribution
-                const baseHue = (timeFactor * 75 + i * 15) % 360;
-                const neonColor = `hsl(${baseHue}, 100%, 60%)`;
-                ctx.strokeStyle = neonColor;
+                // COLORS: Dynamic chromatic progression based on tunnel depth
+                const baseHue = (timeFactor * 80 + i * 14) % 360;
+                ctx.strokeStyle = `hsl(${baseHue}, 100%, 60%)`;
                 ctx.lineWidth = Math.max(1.2, scale * 1.8);
 
-                // FLOWER VARIETIES: Alternates shape patterns based on layer depth index
-                const currentType = FLOWER_TYPES[i % FLOWER_TYPES.length];
-                const pointsCount = 5 + (i % 4); // Dynamically cycles between 5, 6, 7, and 8 petals
+                // Geometric dimensions
+                const pointsCount = 6 + (i % 2); 
                 const outerRadius = scale * 45;
                 const innerRadius = scale * 18;
+                const midRadius = (outerRadius + innerRadius) * 0.5;
+                const amplitude = (outerRadius - innerRadius) * 0.5;
 
                 ctx.beginPath();
 
-                if (currentType === 'star') {
-                    // Star blossom
-                    for (let p = 0; p < pointsCount * 2; p++) {
-                        const currentAngle = (p * Math.PI) / pointsCount;
-                        const r = (p % 2 === 0) ? outerRadius : innerRadius;
-                        const px = Math.cos(currentAngle) * r;
-                        const py = Math.sin(currentAngle) * r;
-                        if (p === 0) ctx.moveTo(px, py);
-                        else ctx.lineTo(px, py);
-                    }
-                } 
-                else if (currentType === 'gear') {
-                    // Blocky mechanical gear flower
-                    for (let p = 0; p < pointsCount * 2; p++) {
-                        const currentAngle = (p * Math.PI) / pointsCount;
-                        const nextAngle = ((p + 1) * Math.PI) / pointsCount;
-                        const r = (Math.floor(p / 2) % 2 === 0) ? outerRadius : innerRadius;
-                        
-                        const px1 = Math.cos(currentAngle) * r;
-                        const py1 = Math.sin(currentAngle) * r;
-                        const px2 = Math.cos(nextAngle) * r;
-                        const py2 = Math.sin(nextAngle) * r;
+                // Generate flower path by continuously computing shifting profiles
+                for (let a = 0; a <= Math.PI * 2; a += 0.05) {
+                    // Profile 1: Smooth wave petals
+                    const rWave = midRadius + Math.sin(a * pointsCount) * amplitude;
 
-                        if (p === 0) ctx.moveTo(px1, py1);
-                        ctx.lineTo(px1, py1);
-                        ctx.lineTo(px2, py2);
+                    // Profile 2: Pointed star points
+                    const starWave = Math.abs(((a * pointsCount / Math.PI) % 2) - 1) * 2 - 1;
+                    const rStar = midRadius + starWave * amplitude;
+
+                    // Profile 3: Blocky gear teeth
+                    const gearWave = Math.tanh(Math.sin(a * pointsCount) * 5);
+                    const rGear = midRadius + gearWave * amplitude;
+
+                    // Smooth blending interpolation based on the morph clock
+                    let finalRadius = rWave;
+                    if (morphCycle < 1) {
+                        // Blend Wave to Star
+                        const t = morphCycle;
+                        finalRadius = rWave * (1 - t) + rStar * t;
+                    } else if (morphCycle < 2) {
+                        // Blend Star to Gear
+                        const t = morphCycle - 1;
+                        finalRadius = rStar * (1 - t) + rGear * t;
+                    } else {
+                        // Blend Gear back to Wave
+                        const t = morphCycle - 2;
+                        finalRadius = rGear * (1 - t) + rWave * t;
                     }
-                } 
-                else if (currentType === 'wave') {
-                    // Smooth sinusoidal curved petals
-                    for (let a = 0; a <= Math.PI * 2; a += 0.05) {
-                        const waveMod = Math.sin(a * pointsCount) * (outerRadius - innerRadius) * 0.5;
-                        const r = ((outerRadius + innerRadius) * 0.5) + waveMod;
-                        const px = Math.cos(a) * r;
-                        const py = Math.sin(a) * r;
-                        if (a === 0) ctx.moveTo(px, py);
-                        else ctx.lineTo(px, py);
-                    }
+
+                    const px = Math.cos(a) * finalRadius;
+                    const py = Math.sin(a) * finalRadius;
+
+                    if (a === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
                 }
 
                 ctx.closePath();
