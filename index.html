@@ -2,33 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>3DTunnelIllusion</title>
+    <title>FlowerIllusion</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #030307;
+            background-color: #020205;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
         }
-
-        #illusionContainer {
+        #canvasContainer {
             position: relative;
             width: 95vw;
             height: 90vh;
             max-width: 1100px;
             max-height: 800px;
             background: #000;
-            /* Border cuts off linear paths perfectly to enhance edge parallax translation */
-            border: 4px solid #111;
-            box-shadow: 0 0 50px rgba(0,0,0,1);
+            border: 2px solid #0a1128;
+            box-shadow: 0 0 60px rgba(0,0,0,1);
             overflow: hidden;
         }
-
         canvas {
             display: block;
             width: 100%;
@@ -38,14 +35,14 @@
 </head>
 <body>
 
-    <div id="illusionContainer">
-        <canvas id="shearCanvas"></canvas>
+    <div id="canvasContainer">
+        <canvas id="flowerCanvas"></canvas>
     </div>
 
     <script>
-        const canvas = document.getElementById('shearCanvas');
+        const canvas = document.getElementById('flowerCanvas');
         const ctx = canvas.getContext('2d');
-        const container = document.getElementById('illusionContainer');
+        const container = document.getElementById('canvasContainer');
 
         function resize() {
             canvas.width = container.clientWidth;
@@ -55,71 +52,77 @@
         resize();
 
         let timeFactor = 0;
-        const totalRings = 42; // Number of layered depth frames
+        const totalLayers = 55; // High layer density overloads the eye tracking field
 
-        function runIllusionLoop() {
-            // Intense motion-blur masking to merge frames into smooth depth gradients
-            ctx.fillStyle = 'rgba(3, 3, 7, 0.14)';
+        function drawPetalLoop(ctx, radius, petalCount, rotation) {
+            ctx.beginPath();
+            for (let i = 0; i < petalCount * 2; i++) {
+                const angle = (i * Math.PI) / petalCount + rotation;
+                
+                // Modulating the radius alternately creates a fluid, wavy rosette footprint
+                const r = (i % 2 === 0) ? radius : radius * 0.45;
+                const x = Math.cos(angle) * r;
+                const y = Math.sin(angle) * r;
+
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        function runNeuralEngine() {
+            // High persistence decay values leave long trailing ghost lines to trap focus
+            ctx.fillStyle = 'rgba(2, 2, 5, 0.09)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             
-            timeFactor += 0.015;
+            timeFactor += 0.009; // A slow, hypnotic pace maximizes the staring effect
 
-            // Generate depth patterns from background forward to stack depth accurately
-            for (let i = totalRings; i > 0; i--) {
-                // Non-linear depth distribution (creates exponential forward zoom speed)
-                const zProgress = (i - (timeFactor % 1)) / totalRings;
-                const scale = Math.pow(1 - zProgress, 3.5) * 12; // Hyperbolic scale transformation
-                
-                if (scale <= 0.05) continue;
+            // Generate concentric flower configurations from foreground to background
+            for (let i = totalLayers; i > 0; i--) {
+                // Exponential spacing structure mimics deep optical lenses
+                const progress = (i - (timeFactor * 18 % 1)) / totalLayers;
+                const scale = Math.pow(1 - progress, 4.0) * 16;
+
+                if (scale <= 0.02) continue;
 
                 ctx.save();
                 ctx.translate(centerX, centerY);
 
-                // ANAMORPHIC SHEAR LOOPHOLE:
-                // Skews the drawing canvas matrix across asymmetrical 3D tilt steps.
-                // The brain processes horizontal shear deformation as depth distance rotation.
-                const shearAngleX = Math.sin(timeFactor * 0.4 + (i * 0.05)) * 0.55;
-                const shearAngleY = Math.cos(timeFactor * 0.3 + (i * 0.04)) * 0.25;
-                ctx.transform(1, shearAngleY, shearAngleX, 1, 0, 0);
-
-                // Smooth rotational vortex tumble to anchor the rolling perspective trap
-                ctx.rotate(timeFactor * 0.2 + (i * 0.08));
-
-                // Color shifts dynamically based on proximity to mimic heat/light distortion
-                const luminance = Math.floor((1 - zProgress) * 255);
-                const neonColor = `hsl(${(timeFactor * 40 + i * 8) % 360}, 100%, 55%)`;
-
-                ctx.strokeStyle = neonColor;
-                ctx.lineWidth = Math.max(1, scale * 1.5);
+                // LAYER-SPECIFIC ALTERNATING TWISTS:
+                // Odd and even layers rotate in opposite directions.
+                // This counter-rotation destabilizes peripheral vision, making the center pop.
+                const directionToggle = (i % 2 === 0) ? 1 : -1;
+                const rotationShift = (timeFactor * 0.45) * directionToggle + (i * 0.04);
                 
-                // Draw a complex multi-point star ring
-                ctx.beginPath();
-                const pointsCount = 6; // Hexagonal layout gives distinct flat edges for your eye tracking
-                const outerRadius = scale * 45;
-                const innerRadius = scale * 18;
+                // Introduce an anamorphic pulsing tilt to create a simulated 3D sway
+                const swayX = Math.sin(timeFactor * 0.3) * 0.12;
+                const swayY = Math.cos(timeFactor * 0.2) * 0.12;
+                ctx.transform(1, swayY, swayX, 1, 0, 0);
 
-                for (let p = 0; p < pointsCount * 2; p++) {
-                    const currentAngle = (p * Math.PI) / pointsCount;
-                    const r = (p % 2 === 0) ? outerRadius : innerRadius;
-                    const px = Math.cos(currentAngle) * r;
-                    const py = Math.sin(currentAngle) * r;
-
-                    if (p === 0) ctx.moveTo(px, py);
-                    else ctx.lineTo(px, py);
-                }
+                // Deep space gradient color mapping
+                const hue = (timeFactor * 25 + i * 5) % 360;
+                ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
                 
-                ctx.closePath();
-                ctx.stroke();
+                // Linewidth increases exponentially as it expands to emulate nearing proximity
+                ctx.lineWidth = Math.max(0.8, scale * 1.8);
+
+                // Render the individual flower layer node
+                const baseRadius = scale * 50;
+                const petalDensity = 8; // Geometric symmetry anchors focus
+                drawPetalLoop(ctx, baseRadius, petalDensity, rotationShift);
+
                 ctx.restore();
             }
 
-            requestAnimationFrame(runIllusionLoop);
+            requestAnimationFrame(runNeuralEngine);
         }
 
-        runIllusionLoop();
+        runNeuralEngine();
     </script>
 </body>
 </html>
+
