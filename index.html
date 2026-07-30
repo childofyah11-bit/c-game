@@ -2,162 +2,239 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Battleship</title>
+    <title>Dropper 2026</title>
     <style>
-        body { 
-            background-color: #0b0f19; 
-            color: #00ffcc; 
-            font-family: 'Courier New', Courier, monospace; 
-            text-align: center; 
+        body {
+            background-color: #050811;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
             margin: 0;
-            padding: 20px;
+            overflow: hidden;
+            padding: 10px;
         }
         h1 {
-            text-transform: uppercase;
-            letter-spacing: 4px;
+            margin: 5px 0;
             text-shadow: 0 0 10px #00ffcc;
-            margin-bottom: 5px;
+            font-size: 24px;
         }
-        .hud {
-            background: rgba(0, 255, 204, 0.1);
-            border: 1px solid #00ffcc;
-            border-radius: 5px;
+        #gameContainer {
+            position: relative;
             display: inline-block;
-            padding: 10px 20px;
-            margin: 15px auto;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
-        }
-        .status-text {
-            font-size: 16px;
-            font-weight: bold;
-        }
-        /* Expanded 8x8 Grid Layout */
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(8, 55px); 
-            gap: 6px; 
-            justify-content: center; 
-            margin: 20px auto; 
-            background: #070a12;
-            padding: 15px;
+            margin-top: 10px;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.3);
             border-radius: 8px;
-            border: 2px solid #1a263f;
-            width: max-content;
+            overflow: hidden;
         }
-        .cell { 
-            width: 55px; 
-            height: 55px; 
-            background-color: #131c2e; 
-            border: 1px solid #1f2e4d; 
-            cursor: pointer; 
-            font-size: 26px; 
-            line-height: 55px; 
-            transition: all 0.2s ease;
-            box-shadow: inset 0 0 5px rgba(0, 255, 204, 0.1);
+        /* Canvas is optimized for smooth, continuous physics rendering */
+        canvas {
+            background: linear-gradient(180s, #0d1527 0%, #070a14 100%);
+            border: 3px solid #00ffcc;
+            display: block;
         }
-        .cell:hover {
-            background-color: #1c2b47;
-            border-color: #00ffcc;
-            box-shadow: 0 0 8px rgba(0, 255, 204, 0.5);
+        .ui-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(5, 8, 17, 0.9);
+            border: 2px solid #ff3344;
+            padding: 20px 40px;
+            border-radius: 5px;
+            display: none;
+            text-align: center;
+            box-shadow: 0 0 20px #ff3344;
         }
-        /* Special Effects */
-        .hit { 
-            background-color: #3d0c11 !important; 
-            border-color: #ff3344 !important;
-            animation: flash 0.3s ease-out;
+        .btn {
+            background: transparent;
+            border: 2px solid #00ffcc;
+            color: #00ffcc;
+            padding: 10px 20px;
+            font-family: inherit;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
         }
-        .miss { 
-            background-color: #1a2a3a !important; 
-            border-color: #00aaff !important;
+        .btn:hover {
+            background: #00ffcc;
+            color: #050811;
+            box-shadow: 0 0 15px #00ffcc;
         }
-        @keyframes flash {
-            0% { background-color: #fff; }
-            100% { background-color: #3d0c11; }
+        .controls-hint {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #88aaff;
         }
     </style>
 </head>
 <body>
-    <h1>🛰️ Tactical Radar Display 🛰️</h1>
-    <div class="hud">
-        <div id="status" class="status-text">SYSTEM READY: Scan the ocean grid. Torpedoes left: 20</div>
+
+    <h1>🌀 CYBER DROPPER 🌀</h1>
+    <div style="font-size: 18px; font-weight: bold;">SCORE: <span id="scoreVal">0</span></div>
+    <div class="controls-hint">Use LEFT / RIGHT Arrow Keys or A / D to steer your probe</div>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div id="gameOverScreen" class="ui-overlay">
+            <h2 style="color: #ff3344; margin: 0 0 10px 0; letter-spacing: 2px;">PROBE DESTROYED</h2>
+            <p>Final Depth Reached: <span id="finalScore">0</span>m</p>
+            <button class="btn" onclick="resetGame()">Relaunch Probe</button>
+        </div>
     </div>
-    
-    <div class="grid" id="board"></div>
 
     <script>
-        const boardSize = 8;
-        let attempts = 0;
-        const maxAttempts = 20;
-        let hitsRequired = 3;
-        let successfulHits = 0;
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreVal = document.getElementById('scoreVal');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScore = document.getElementById('finalScore');
 
-        // Generate a random 3-wide horizontal or vertical ship
-        const shipCoords = [];
-        const isHorizontal = Math.random() < 0.5;
+        // Game Configuration
+        let score = 0;
+        let gameActive = true;
+        let gameSpeed = 4;
 
-        if (isHorizontal) {
-            const row = Math.floor(Math.random() * boardSize);
-            const startCol = Math.floor(Math.random() * (boardSize - 2)); // space for 3 blocks
-            for (let i = 0; i < 3; i++) shipCoords.push({ r: row, c: startCol + i });
-        } else {
-            const startRow = Math.floor(Math.random() * (boardSize - 2)); // space for 3 blocks
-            const col = Math.floor(Math.random() * boardSize);
-            for (let i = 0; i < 3; i++) shipCoords.push({ r: startRow + i, c: col });
+        // Player (Dropping Probe) Layout
+        const player = {
+            x: 200,
+            y: 120, // Stays in upper third while world moves past it
+            radius: 12,
+            speed: 7,
+            dx: 0
+        };
+
+        // Obstacles (Walls with escape gaps)
+        let gates = [];
+        const gateHeight = 20;
+        const gateGapWidth = 90;
+        const spawnDistance = 180; // Distance between incoming obstacles
+
+        // Handle Keyboard Events
+        const keys = {};
+        document.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+        document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+        function createGate(yPosition) {
+            // Pick a completely random slot center across the horizontal field
+            const gapX = Math.random() * (canvas.width - gateGapWidth - 40) + 20;
+            gates.push({ y: yPosition, gapX: gapX });
         }
 
-        const boardElement = document.getElementById('board');
-        const statusElement = document.getElementById('status');
+        // Initialize starting walls below the player
+        function initGates() {
+            gates = [];
+            createGate(canvas.height);
+            createGate(canvas.height + spawnDistance);
+            createGate(canvas.height + spawnDistance * 2);
+        }
 
-        // Render the new 8x8 layout
-        for (let r = 0; r < boardSize; r++) {
-            for (let c = 0; c < boardSize; c++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                
-                cell.addEventListener('click', () => {
-                    if (attempts >= maxAttempts || cell.textContent !== '') return;
-                    
-                    attempts++;
-                    // Check if targeted coordinate matches ship coordinate layout
-                    const isHit = shipCoords.some(coord => coord.r === r && coord.c === c);
+        function updatePhysics() {
+            if (!gameActive) return;
 
-                    if (isHit) {
-                        cell.classList.add('hit');
-                        cell.textContent = '💥';
-                        successfulHits++;
-                        
-                        if (successfulHits === hitsRequired) {
-                            statusElement.innerHTML = '<span style="color: #33ff77;">💥 TARGET SINKING! VICTORY CONFIRMED! 💥</span>';
-                            attempts = maxAttempts; // End game interaction
-                        } else {
-                            statusElement.innerHTML = `<span style="color: #ff3344;">🎯 CRITICAL HIT! Ship sections remaining: ${hitsRequired - successfulHits}</span>`;
-                        }
-                    } else {
-                        cell.classList.add('miss');
-                        cell.textContent = '💦';
-                        if (attempts >= maxAttempts && successfulHits < hitsRequired) {
-                            statusElement.innerHTML = '<span style="color: #ff3344;">❌ MISSION FAILED: Out of payload. Scanning ship positions...</span>';
-                            revealShips();
-                        } else {
-                            statusElement.textContent = `SPLASH... Target missed. Torpedoes left: ${maxAttempts - attempts}`;
-                        }
+            // Player Steering Logic
+            if (keys['arrowleft'] || keys['a']) player.dx = -player.speed;
+            else if (keys['arrowright'] || keys['d']) player.dx = player.speed;
+            else player.dx = 0;
+
+            player.x += player.dx;
+
+            // Screen Boundary Hard Stops
+            if (player.x - player.radius < 0) player.x = player.radius;
+            if (player.x + player.radius > canvas.width) player.x = canvas.width - player.radius;
+
+            // Obstacle Movement and Scoring Update Loops
+            gates.forEach((gate) => {
+                gate.y -= gameSpeed; // Moving obstacles upwards simulates falling downward
+
+                // Collision Detection Framework
+                if (player.y + player.radius > gate.y && player.y - player.radius < gate.y + gateHeight) {
+                    // Check if player position is outside the safety gap bounds
+                    if (player.x - player.radius < gate.gapX || player.x + player.radius > gate.gapX + gateGapWidth) {
+                        endGame();
                     }
-                });
-                boardElement.appendChild(cell);
+                }
+            });
+
+            // Clean up off-screen gates and increment layout scores
+            if (gates.length > 0 && gates[0].y + gateHeight < 0) {
+                gates.shift();
+                score += 10;
+                scoreVal.textContent = score;
+                
+                // Gradually step up velocity over time to boost pressure
+                if (score % 40 === 0) gameSpeed += 0.5;
+
+                // Spawn a new gate sequence at the tail end
+                const lastGateY = gates[gates.length - 1].y;
+                createGate(lastGateY + spawnDistance);
             }
         }
 
-        function revealShips() {
-            const cells = boardElement.children;
-            shipCoords.forEach(coord => {
-                const index = coord.r * boardSize + coord.c;
-                if (cells[index].textContent !== '💥') {
-                    cells[index].style.backgroundColor = '#114422';
-                    cells[index].style.borderColor = '#33ff77';
-                    cells[index].textContent = '🚢';
-                }
+        function renderGraphics() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Cyber Grid Illusion Lines (Moving upward)
+            ctx.strokeStyle = 'rgba(0, 255, 204, 0.05)';
+            ctx.lineWidth = 2;
+            const lineOffset = (performance.now() * (gameSpeed / 10)) % 40;
+            for (let y = -lineOffset; y < canvas.height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Draw Obstacle Barriers
+            gates.forEach(gate => {
+                ctx.fillStyle = '#ff3344';
+                ctx.shadowColor = '#ff3344';
+                ctx.shadowBlur = 8;
+
+                // Left Segment of the block wall
+                ctx.fillRect(0, gate.y, gate.gapX, gateHeight);
+                // Right Segment of the block wall
+                ctx.fillRect(gate.gapX + gateGapWidth, gate.y, canvas.width - (gate.gapX + gateGapWidth), gateHeight);
             });
+
+            // Draw Core Player Target Sphere
+            ctx.fillStyle = '#00ffcc';
+            ctx.shadowColor = '#00ffcc';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Clear glow artifacts from standard vector context
+            ctx.shadowBlur = 0;
         }
+
+        function gameLoop() {
+            updatePhysics();
+            renderGraphics();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            gameActive = false;
+            finalScore.textContent = score;
+            gameOverScreen.style.display = 'block';
+        }
+
+        function resetGame() {
+            score = 0;
+            gameSpeed = 4;
+            player.x = 200;
+            scoreVal.textContent = score;
+            gameOverScreen.style.display = 'none';
+            initGates();
+            gameActive = true;
+        }
+
+        // Boot system parameters
+        initGates();
+        gameLoop();
     </script>
 </body>
 </html>
