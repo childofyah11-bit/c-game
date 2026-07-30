@@ -2,34 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>3D</title>
+    <title>3D Hyper-Spiral Popout Vortex</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #020408;
+            background-color: #010205;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            perspective: 1000px; /* Forces browser rendering engine into 3D space mode */
+            perspective: 1200px;
         }
 
-        /* The Focal Plane: Acts like a flat window frame. Objects passing *over* this appear in front of the screen */
-        #viewportBoundary {
+        /* The Focal Window Frame */
+        #vortexFrame {
             position: relative;
-            width: 85vw;
+            width: 90vw;
             height: 85vh;
-            max-width: 900px;
-            max-height: 700px;
-            border: 8px double #1a2942;
-            background: radial-gradient(circle at center, #070e1b 0%, #02050a 100%);
+            max-width: 1000px;
+            max-height: 750px;
+            border: 6px double #0d1b2a;
+            background: #020408;
             box-shadow: 
-                0 0 50px rgba(0, 0, 0, 0.9),
-                inset 0 0 100px rgba(0, 255, 204, 0.08);
-            overflow: visible; /* CRITICAL: Allows shapes to physically leave the boundary box */
+                0 0 60px rgba(0, 0, 0, 0.95),
+                inset 0 0 80px rgba(0, 255, 230, 0.05);
+            overflow: visible; /* Allows spiral rings to burst out of the frame bounds */
             box-sizing: border-box;
         }
 
@@ -42,30 +42,37 @@
             pointer-events: none;
         }
 
-        .glasses-hint {
+        .alert-text {
             position: absolute;
-            bottom: -45px;
+            top: -40px;
             width: 100%;
             text-align: center;
-            color: #4b6584;
-            font-family: monospace;
-            font-size: 13px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
+            color: #ff3344;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            text-shadow: 0 0 8px rgba(255, 51, 68, 0.4);
+            animation: flash 1.5s infinite;
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
     </style>
 </head>
 <body>
 
-    <div id="viewportBoundary">
-        <canvas id="hyper3dCanvas"></canvas>
-        <div class="glasses-hint">🕶️ Enhanced Stereoscopic Mode Active (Best viewed with Red/Cyan Glasses) 🕶️</div>
+    <div id="vortexFrame">
+        <div class="alert-text">⚠️ WARNING: MAXIMUM COGNITIVE DEPTH OVERDRIVE ⚠️</div>
+        <canvas id="vortexCanvas"></canvas>
     </div>
 
     <script>
-        const canvas = document.getElementById('hyper3dCanvas');
+        const canvas = document.getElementById('vortexCanvas');
         const ctx = canvas.getContext('2d');
-        const container = document.getElementById('viewportBoundary');
+        const container = document.getElementById('vortexFrame');
 
         function resize() {
             canvas.width = container.clientWidth;
@@ -74,99 +81,100 @@
         window.addEventListener('resize', resize);
         resize();
 
-        const shapes = [];
-        const maxShapes = 45;
-        const maxDepth = 800; // Deep background horizon point
+        // Engine Variables
+        let globalRotation = 0;
+        const totalNodes = 180; // Massive node trace count for a solid geometry line look
+        const maxDepth = 900;
+        const focalPlaneZ = 180; // The spatial tipping point where lines break through the display glass
 
-        // Populate object models with structural rotation vectors
-        for (let i = 0; i < maxShapes; i++) {
-            shapes.push({
-                x: (Math.random() - 0.5) * canvas.width * 1.8,
-                y: (Math.random() - 0.5) * canvas.height * 1.8,
-                z: Math.random() * maxDepth,
-                size: Math.random() * 15 + 10,
-                angle: Math.random() * Math.PI * 2,
-                rotSpeed: (Math.random() - 0.5) * 0.04
-            });
-        }
-
-        function drawStereoCube(ctx, x, y, size, angle, disparity) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(angle);
-            
-            // Draw a wireframe square block footprint
-            ctx.beginPath();
-            ctx.rect(-size/2 + disparity, -size/2, size, size);
-            ctx.stroke();
-            
-            // Inner core block accent to anchor eye convergence
-            ctx.beginPath();
-            ctx.rect(-size/4 + disparity, -size/4, size/2, size/2);
-            ctx.stroke();
-            
-            ctx.restore();
-        }
-
-        function renderEngineLoop() {
-            // High-fade tail buffer to add extreme cinematic speed smear
-            ctx.fillStyle = 'rgba(2, 5, 10, 0.2)';
+        function renderVortex() {
+            // Keep the trail fade ultra-dark and precise for neon light clarity
+            ctx.fillStyle = 'rgba(1, 2, 5, 0.12)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
 
-            // Sort shapes by depth (Z-index) so distant objects are drawn behind close objects
-            shapes.sort((a, b) => b.z - a.z);
+            // Slowly increment rotation speed to feed the spiral illusion spin
+            globalRotation += 0.025;
 
-            for (let i = 0; i < shapes.length; i++) {
-                let s = shapes[i];
+            // Store fully calculated 3D coordinates for projection mapping
+            const points = [];
 
-                // Fly swiftly forward straight through the viewport plane
-                s.z -= 4.5;
-                s.angle += s.rotSpeed;
+            for (let i = 0; i < totalNodes; i++) {
+                // Distribute nodes chronologically along a deep spatial pipeline
+                const progress = i / totalNodes;
+                
+                // Animate depth z positioning over time to create a forward moving effect
+                let z = maxDepth - ((progress * maxDepth + globalRotation * 80) % maxDepth);
+                
+                // Exponential math formulas to weave nodes into a hyper-helix thread
+                const helixRadius = 140 * Math.log(maxDepth / (z + 20)); 
+                const spiralAngle = (progress * Math.PI * 14) + (globalRotation * 0.5);
 
-                // Recycle object safely back into extreme deep infinity background once passed eye threshold
-                if (s.z <= -150) {
-                    s.x = (Math.random() - 0.5) * canvas.width * 1.8;
-                    s.y = (Math.random() - 0.5) * canvas.height * 1.8;
-                    s.z = maxDepth;
-                }
+                // Derive 3D raw space points
+                const x = Math.cos(spiralAngle) * helixRadius;
+                const y = Math.sin(spiralAngle) * helixRadius;
 
-                // 3D Perspective Scale Multiplication
-                const scaleFactor = 350 / (s.z + 150);
-                const screenX = s.x * scaleFactor + centerX;
-                const screenY = s.y * scaleFactor + centerY;
-                const currentSize = s.size * scaleFactor;
+                // Project 3D coordinate space onto flat 2D viewport surface
+                const scaleFactor = 380 / (z + 100);
+                const projX = x * scaleFactor + centerX;
+                const projY = y * scaleFactor + centerY;
+                const nodeSize = Math.max(1, (1.2 - (z / maxDepth)) * 7);
 
-                // STEREOSCOPIC DISPARITY MATH:
-                // Positive disparity (far away) = Red Left, Cyan Right.
-                // Zero disparity (exactly at window border frame line) = Merged Perfectly.
-                // Negative disparity (POPPING OUT OUTSIDE MONITOR) = Cyan Left, Red Right!
-                const focalPlaneZ = 200; // The threshold zone where objects "cross" your screen frame
-                const stereoDisparity = ((s.z - focalPlaneZ) / maxDepth) * 16;
+                // Compute exact stereoscopic channel variance split distances
+                const stereoDisparity = ((z - focalPlaneZ) / maxDepth) * 26;
 
-                // Skip drawing if elements have ballooned completely past normal visibility bounds
-                if (screenX < -200 || screenX > canvas.width + 200 || screenY < -200 || screenY > canvas.height + 200) {
-                    continue;
-                }
-
-                ctx.lineWidth = Math.max(1, (1 - (s.z / maxDepth)) * 3);
-
-                // LAYER 1: RED CHANNEL (Left Eye Perspective shift)
-                ctx.strokeStyle = 'rgba(255, 30, 60, 0.85)';
-                ctx.globalCompositeOperation = 'screen';
-                drawStereoCube(ctx, screenX, screenY, currentSize, s.angle, -stereoDisparity);
-
-                // LAYER 2: CYAN CHANNEL (Right Eye Perspective shift)
-                ctx.strokeStyle = 'rgba(0, 255, 230, 0.85)';
-                drawStereoCube(ctx, screenX, screenY, currentSize, s.angle, stereoDisparity);
+                points.push({
+                    x: projX,
+                    y: projY,
+                    size: nodeSize,
+                    disparity: stereoDisparity,
+                    z: z
+                });
             }
 
-            requestAnimationFrame(renderEngineLoop);
+            // Draw connecting lines between mapped vertices to construct geometric walls
+            ctx.globalCompositeOperation = 'screen';
+
+            // PHASE 1: THE STEREO RED TUNNEL CHANNEL (Left eye map offset)
+            ctx.strokeStyle = 'rgba(255, 10, 50, 0.75)';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (let i = 0; i < points.length - 1; i++) {
+                // If nodes jump boundaries during recycling loop, skip linking line
+                if (points[i].z > points[i+1].z) continue;
+                
+                if (i === 0) ctx.moveTo(points[i].x - points[i].disparity, points[i].y);
+                else ctx.lineTo(points[i].x - points[i].disparity, points[i].y);
+            }
+            ctx.stroke();
+
+            // PHASE 2: THE STEREO CYAN TUNNEL CHANNEL (Right eye map offset)
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.75)';
+            ctx.beginPath();
+            for (let i = 0; i < points.length - 1; i++) {
+                if (points[i].z > points[i+1].z) continue;
+
+                if (i === 0) ctx.moveTo(points[i].x + points[i].disparity, points[i].y);
+                else ctx.lineTo(points[i].x + points[i].disparity, points[i].y);
+            }
+            ctx.stroke();
+
+            // Draw glowing node points as they get close to create a splatter look
+            for (let i = 0; i < points.length; i++) {
+                let p = points[i];
+                if (p.z < focalPlaneZ + 100) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.fillRect(p.x - p.disparity - (p.size/2), p.y - (p.size/2), p.size, p.size);
+                    ctx.fillRect(p.x + p.disparity - (p.size/2), p.y - (p.size/2), p.size, p.size);
+                }
+            }
+
+            requestAnimationFrame(renderVortex);
         }
 
-        renderEngineLoop();
+        renderVortex();
     </script>
 </body>
 </html>
