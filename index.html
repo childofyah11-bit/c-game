@@ -2,30 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>illusionspiralFlowerthing</title>
+    <title>Tunnel Illusion</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #000002;
+            background-color: #030307;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
         }
-        #canvasContainer {
+
+        #illusionContainer {
             position: relative;
             width: 95vw;
             height: 90vh;
             max-width: 1100px;
             max-height: 800px;
             background: #000;
-            border: 2px solid #030814;
-            box-shadow: 0 0 80px rgba(0,0,0,1);
+            /* Border cuts off linear paths perfectly to enhance edge parallax translation */
+            border: 4px solid #111;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
             overflow: hidden;
         }
+
         canvas {
             display: block;
             width: 100%;
@@ -35,14 +38,14 @@
 </head>
 <body>
 
-    <div id="canvasContainer">
-        <canvas id="ultraMorphCanvas"></canvas>
+    <div id="illusionContainer">
+        <canvas id="shearCanvas"></canvas>
     </div>
 
     <script>
-        const canvas = document.getElementById('ultraMorphCanvas');
+        const canvas = document.getElementById('shearCanvas');
         const ctx = canvas.getContext('2d');
-        const container = document.getElementById('canvasContainer');
+        const container = document.getElementById('illusionContainer');
 
         function resize() {
             canvas.width = container.clientWidth;
@@ -52,118 +55,71 @@
         resize();
 
         let timeFactor = 0;
-        const totalLayers = 65; // Ultra-dense array completely exhausts tracking cells
+        const totalRings = 42; // Number of layered depth frames
 
-        // Advanced multi-vector geometry generator supporting 5 distinct structural configurations
-        function drawAdvancedPetals(ctx, radius, basePetals, rotation, morphStage) {
-            ctx.beginPath();
-            const resolution = 180; // High vector density for flawless curve rendering
-
-            for (let i = 0; i <= resolution; i++) {
-                const angle = (i * Math.PI * 2) / resolution + rotation;
-
-                // 1. ROSE MODEL: Sharp alternating star ridges
-                const roseMod = Math.abs(Math.sin(angle * (basePetals / 2)));
-
-                // 2. TULIP MODEL: Deeply cupped smooth structural lobes
-                const tulipMod = 0.65 + Math.sin(angle * basePetals) * 0.35;
-
-                // 3. LOTUS MODEL: Highly frequent star flare vertices
-                const lotusMod = 0.4 + Math.abs(Math.cos(angle * basePetals * 1.5)) * 0.6;
-
-                // 4. SUNFLOWER MODEL: Dense overlapping multi-layered small fringes
-                const sunflowerMod = 0.85 + Math.sin(angle * 24) * 0.15;
-
-                // 5. HIBISCUS MODEL: Wide, asymmetrical fluid rippling waves
-                const hibiscusMod = 0.75 + Math.sin(angle * 3) * 0.2 * Math.cos(angle * basePetals);
-
-                // Multi-stage linear interpolation array loop to blend 5 states smoothly
-                let finalMod = 1;
-                
-                if (morphStage < 1) {      // Stage 0 -> 1: Rose to Tulip
-                    finalMod = roseMod * (1 - morphStage) + tulipMod * morphStage;
-                } else if (morphStage < 2) { // Stage 1 -> 2: Tulip to Lotus
-                    const t = morphStage - 1;
-                    finalMod = tulipMod * (1 - t) + lotusMod * t;
-                } else if (morphStage < 3) { // Stage 2 -> 3: Lotus to Sunflower
-                    const t = morphStage - 2;
-                    finalMod = lotusMod * (1 - t) + sunflowerMod * t;
-                } else {                     // Stage 3 -> 4: Sunflower to Hibiscus (and cycles back)
-                    const t = morphStage - 3;
-                    finalMod = sunflowerMod * (1 - t) + hibiscusMod * t;
-                }
-
-                const finalRadius = radius * finalMod;
-                const x = Math.cos(angle) * finalRadius;
-                const y = Math.sin(angle) * finalRadius;
-
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-            ctx.stroke();
-        }
-
-        function runNeuralEngine() {
-            // Tighten trailing decay to emphasize hyper-speed edge paths
-            ctx.fillStyle = 'rgba(0, 0, 2, 0.11)';
+        function runIllusionLoop() {
+            // Intense motion-blur masking to merge frames into smooth depth gradients
+            ctx.fillStyle = 'rgba(3, 3, 7, 0.14)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
-
-            timeFactor += 0.008; // Steady time progression vector
-
-            // HYPER-VELOCITY ENGINE ACCELERATION:
-            // Multiplied by 1.25 to force rapid shape evolution across 4 distinct blending thresholds
-            const totalPhases = 4;
-            const morphCycle = (timeFactor * 1.25) % totalPhases; 
             
-            let activeBasePetals = 5;
-            if (morphCycle < 1) activeBasePetals = 5;      // Rose / Tulip nodes
-            else if (morphCycle < 2) activeBasePetals = 6; // Lotus lobes
-            else if (morphCycle < 3) activeBasePetals = 12;// Sunflower base symmetry
-            else activeBasePetals = 5;                     // Hibiscus waves
+            timeFactor += 0.015;
 
-            for (let i = totalLayers; i > 0; i--) {
-                const progress = (i - (timeFactor * 32 % 1)) / totalLayers; // Accelerated forward rush
-                const scale = Math.pow(1 - progress, 4.8) * 20; // Hyper-warped focal length expansion
-
-                if (scale <= 0.01) continue;
+            // Generate depth patterns from background forward to stack depth accurately
+            for (let i = totalRings; i > 0; i--) {
+                // Non-linear depth distribution (creates exponential forward zoom speed)
+                const zProgress = (i - (timeFactor % 1)) / totalRings;
+                const scale = Math.pow(1 - zProgress, 3.5) * 12; // Hyperbolic scale transformation
+                
+                if (scale <= 0.05) continue;
 
                 ctx.save();
                 ctx.translate(centerX, centerY);
 
-                const directionToggle = (i % 2 === 0) ? 1 : -1;
-                const rotationShift = (timeFactor * 0.45) * directionToggle + (i * 0.06);
+                // ANAMORPHIC SHEAR LOOPHOLE:
+                // Skews the drawing canvas matrix across asymmetrical 3D tilt steps.
+                // The brain processes horizontal shear deformation as depth distance rotation.
+                const shearAngleX = Math.sin(timeFactor * 0.4 + (i * 0.05)) * 0.55;
+                const shearAngleY = Math.cos(timeFactor * 0.3 + (i * 0.04)) * 0.25;
+                ctx.transform(1, shearAngleY, shearAngleX, 1, 0, 0);
 
-                // Asymmetric lens distortion matrix
-                const sX = Math.sin(timeFactor * 0.35) * 0.08;
-                const sY = Math.cos(timeFactor * 0.22) * 0.08;
-                ctx.transform(1, sY, sX, 1, 0, 0);
+                // Smooth rotational vortex tumble to anchor the rolling perspective trap
+                ctx.rotate(timeFactor * 0.2 + (i * 0.08));
 
-                // CHROMATIC PHASE SPLITTING:
-                // Odd layers utilize the primary spectrum, even layers invert 180 degrees into the exact opposite tint field.
-                // This hyper-contrast tricks retinal cells into assigning depth boundaries between layers.
-                let hue = (timeFactor * 40 + i * 4) % 360;
-                if (i % 2 === 0) {
-                    hue = (hue + 180) % 360; // Flashes complementary contrasting colors side-by-side
-                }
+                // Color shifts dynamically based on proximity to mimic heat/light distortion
+                const luminance = Math.floor((1 - zProgress) * 255);
+                const neonColor = `hsl(${(timeFactor * 40 + i * 8) % 360}, 100%, 55%)`;
 
-                ctx.strokeStyle = `hsl(${hue}, 100%, 55%)`;
-                ctx.lineWidth = Math.max(0.5, scale * 1.4);
-
-                const currentBaseRadius = scale * 48;
+                ctx.strokeStyle = neonColor;
+                ctx.lineWidth = Math.max(1, scale * 1.5);
                 
-                drawAdvancedPetals(ctx, currentBaseRadius, activeBasePetals, rotationShift, morphCycle);
+                // Draw a complex multi-point star ring
+                ctx.beginPath();
+                const pointsCount = 6; // Hexagonal layout gives distinct flat edges for your eye tracking
+                const outerRadius = scale * 45;
+                const innerRadius = scale * 18;
 
+                for (let p = 0; p < pointsCount * 2; p++) {
+                    const currentAngle = (p * Math.PI) / pointsCount;
+                    const r = (p % 2 === 0) ? outerRadius : innerRadius;
+                    const px = Math.cos(currentAngle) * r;
+                    const py = Math.sin(currentAngle) * r;
+
+                    if (p === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                
+                ctx.closePath();
+                ctx.stroke();
                 ctx.restore();
             }
 
-            requestAnimationFrame(runNeuralEngine);
+            requestAnimationFrame(runIllusionLoop);
         }
 
-        runNeuralEngine();
+        runIllusionLoop();
     </script>
 </body>
 </html>
